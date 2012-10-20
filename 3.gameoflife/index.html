@@ -4,67 +4,93 @@
 	<style>
 canvas {
         background: url(http://boiardt.se/devnull/grass.jpg);
-        padding: 50px;
+        background-size: 100%;
+        padding: 9%;
+}
+
+.progress {
+	display: block;
+	height: 20px;
+	width: 300px;
+}
+
+.progress span {
+	display: block;
+	height: 30px;
+	background: #0f0;
+}
+
+.hscore .progress span {
+	background: #f00;
 }
 </style>
 </head>
 <body>
+
 	<script>
 	var canvas,
 	context,
 	foods = [],
 	grazers = [],
-	hunters = [];
+	hunters = [],
+	width = 250,
+	height = 250;
 
 	var ID = 0;
 
 	
 	var canvas = document.createElement('canvas');
-	canvas.width = 100;
-	canvas.height = 100;
+	canvas.width = width;
+	canvas.height = height;
 	document.body.appendChild(canvas);
 	var context = canvas.getContext("2d");
 
+	var gScore = document.createElement('div');
+	gScore.className = "gscore";
+	document.body.appendChild(gScore);
+	var hScore = document.createElement('div');
+	hScore.className = "hscore"
+	document.body.appendChild(hScore);
+
 	function Grazer (context) {
 		var self = this;
-		self.x = Math.floor(Math.random()*100);
-		self.y = Math.floor(Math.random()*100);
+		self.x = Math.floor(Math.random()*width);
+		self.y = Math.floor(Math.random()*height);
 		self.age = 0;
 		self.id = ID++;
-		self.draw = function(){
-			context.fillStyle = "rgba(255,0,0,1.0)";
-			context.fillRect( self.x, self.y, 1, 1 );
-		}
-	}
-
-	function Hunter (context) {
-		var self = this;
-		self.x = Math.floor(Math.random()*100);
-		self.y = Math.floor(Math.random()*100);
-		self.age = 0;
 		self.draw = function(){
 			context.fillStyle = "rgba(255,255,255,1.0)";
 			context.fillRect( self.x, self.y, 1, 1 );
 		}
 	}
 
-	function Food (context) {
+	function Hunter (context) {
 		var self = this;
-		self.x = Math.floor(Math.random()*100);
-		self.y = Math.floor(Math.random()*100);
-		self.id = ID++;
+		self.x = Math.floor(Math.random()*width);
+		self.y = Math.floor(Math.random()*height);
+		self.age = 0;
 		self.draw = function(){
-			context.fillStyle = "rgba(100,100,0,1.0)";
+			context.fillStyle = "rgba(255,0,0,1.0)";
 			context.fillRect( self.x, self.y, 1, 1 );
 		}
 	}
 
-	for (var i = 0; i < 15; i++) {
+	function Food (context) {
+		var self = this;
+		self.x = Math.floor(Math.random()*width);
+		self.y = Math.floor(Math.random()*height);
+		self.id = ID++;
+		self.draw = function(){
+			context.createFood(self.x,self.y);
+		}
+	}
+
+	for (var i = 0; i < 40; i++) {
 		var g = new Grazer(context);
 		grazers.push(g)
 	}
 
-	for (var i = 0; i < 10; i++) {
+	for (var i = 0; i < 30; i++) {
 		var h = new Hunter(context);
 		hunters.push(h)
 	}
@@ -76,7 +102,7 @@ canvas {
 
 		for (var i = grazers.length - 1; i >= 0; i--) {
 			grazers[i].age++;
-			if(grazers[i].age >= 20){
+			if(grazers[i].age >= 100){
 				grazers.splice(i,1)
 			}
 		};
@@ -139,9 +165,13 @@ canvas {
 				var moveY = (Math.random()>0.5);
 				if(moveX){
 					g.x += (Math.random()>0.5) ? 1 : -1;
+					if(g.x < 0) g.x = 0;
+					if(g.x > width) g.x = width;
 				} 
 				if(moveY){
 					g.y += (Math.random()>0.5) ? 1 : -1;
+					if(g.y < 0) g.y = 0;
+					if(g.y > height) g.y = height;
 				}
 			}
 			
@@ -152,7 +182,7 @@ canvas {
 
 		for (var i = hunters.length - 1; i >= 0; i--) {
 			hunters[i].age++;
-			if(hunters[i].age >= 50){
+			if(hunters[i].age >= 100){
 				hunters.splice(i,1)
 			}
 		};
@@ -215,9 +245,13 @@ canvas {
 				var moveY = (Math.random()>0.5);
 				if(moveX){
 					h.x += (Math.random()>0.5) ? 2 : -2;
+					if(h.x < 0) h.x = 0;
+					if(h.x > width) h.x = width;
 				} 
 				if(moveY){
 					h.y += (Math.random()>0.5) ? 2 : -2;
+					if(h.y < 0) h.y = 0;
+					if(h.y > height) h.y = height;
 				}
 			}
 			
@@ -225,20 +259,26 @@ canvas {
 	}
 
 	function tick(){
-		for (var i = 0; i < 10; i++) {
-			foods.push(new Food(context));
+		if ( foods.length < 2000 ) {
+			for (var i = 0; i < 10; i++) {
+				foods.push(new Food(context));
+			}
 		}
 		
 		grazersUpdate();
 		huntersUpdate();
 		
+		var total = grazers.length + hunters.length;
+
+		gScore.innerHTML = "Sheeps " + grazers.length + '<span class="progress"><span style="width:' + (( grazers.length / total ) * 100 ) + '%"></span></span>';
+		hScore.innerHTML = "Predators " + hunters.length + '<span class="progress"><span style="width:' + (( hunters.length / total ) * 100 ) + '%"></span></span>';
 
 		draw();
 	}
 
 	function draw(){
-		context.fillStyle = "rgba(0,0,0,1.0)";
-		context.fillRect  (0,0,100,100);
+		context.fillStyle = "rgba(50,50,50,1.0)";
+		context.fillRect  (0,0,width,height);
 		for (var i = 0; i < foods.length; i++) {
 			foods[i].draw()
 		};
@@ -252,26 +292,30 @@ canvas {
 	}
 
 
-	CanvasRenderingContext2D.prototype.createGlowDot = function(x,y,color){
-        var size = 4,
-                hSize = size / 2,
-                dSize = size * 4;
 
-        var grd = this.createRadialGradient(x, y, 0, x, y, size);
-        grd.addColorStop(0,'rgba(' + color + ',.4)');
-        grd.addColorStop(1,'rgba(' + color + ',0)');
+CanvasRenderingContext2D.prototype.createGlowDot = function(x,y,color){
+	var size = 2,
+		hSize = size / 2,
+		dSize = size * 4;
 
-        this.fillStyle = grd;
-        this.fillRect(x - size, y - size, dSize, dSize);
+	var grd = this.createRadialGradient(x, y, 0, x, y, size);
+	grd.addColorStop(0,'rgba(' + color + ',.5)');
+	grd.addColorStop(1,'rgba(' + color + ',0)');
 
-        this.fillStyle = 'rgb(' + color + ')';
-        this.fillRect(x,y,1,1);
+	this.fillStyle = grd;
+	this.fillRect(x - size, y - size, dSize, dSize);
+
+	/*this.fillStyle = 'rgb(' + color + ')';
+	this.fillRect(x,y,1,1);*/
 }
 CanvasRenderingContext2D.prototype.createFood = function(x,y){
-        this.createGlowDot(x,y,'255,255,0')
+	this.createGlowDot(x,y,'0,180,0')
 }
 CanvasRenderingContext2D.prototype.createGrazer = function(x,y){
-        this.createGlowDot(x,y,'255,0,0')
+	this.createGlowDot(x,y,'255,0,0')
+}
+CanvasRenderingContext2D.prototype.createHunter = function(x,y){
+	this.createGlowDot(x,y,'255,255,255')
 }
 
 
