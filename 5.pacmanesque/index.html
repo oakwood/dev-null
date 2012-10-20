@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+<head>
+
+</head>
+<body>
+	<script>
+
+	var canvas,
+	context,
+	tiles = [],
+	player,
+	players = []
+
+	var ID = 0;
+
+	var tileW = 3;
+	var tileH = 3;
+	var columns = 10;
+	var rows = 4;
+	var size = (columns * tileW) * (rows * tileH);
+	var s = 20;
+
+	var TILE_MODELS = [
+	
+		[0,0,0,
+		 0,1,0,
+		 0,1,1],
+
+		[0,0,0,
+		 0,1,1,
+		 0,0,0],
+
+		 [0,0,0,
+		 0,1,1,
+		 0,1,0],
+
+		[0,0,0,
+		 0,1,1,
+		 0,0,0],
+
+		 [0,0,0,
+		 0,1,0,
+		 1,1,0],
+
+		[0,0,0,
+		 1,1,0,
+		 0,0,0]
+	];
+	
+	function TileBlock (settings) {
+		var self = this;
+		self.x = settings.x;
+		self.y = settings.y;
+		self.tiles = [];
+		var i = 0;
+		for (var x = 0; x < tileW; x++) {
+			for (var y = 0; y < tileH; y++) {
+				var tile = new Tile({
+					blocked : settings.layout[i]
+				})
+				tile.x = self.x + x;
+				tile.y = self.y + y;
+				self.tiles.push(tile);
+				i++;
+			}
+		}
+		for (var i = 0; i < settings.layout.length; i++) {
+			
+		};
+	}
+
+	function Tile (settings) {
+		var self = this;
+		self.blocked = settings.blocked;
+		self.x = 0;
+		self.y = 0;
+		self.draw = function(){
+			if(self.blocked)
+				context.fillStyle = "rgba(0,0,200,1.0)";
+			else{
+				context.fillStyle = "rgba(0,0,0,1.0)";
+			}			
+			context.fillRect( self.x * s, self.y * s, s, s );
+		}
+	}
+
+	function Player (settings) {
+		var self = this;
+		self.color = settings.color || '#ffff00';
+		self.speed = settings.speed || 8; //tiles per second
+		self.x = 0;
+		self.y = 0;
+
+		self.moveTo = function(x,y, immediate){
+			immediate = immediate || false;
+			self.currentX = self.x;
+			self.currentY = self.y;
+			self.x = x;
+			self.y = y;
+			self.diffX = self.x - self.currentX;
+			self.diffY = self.y - self.currentY;
+			self.currentT = 0;
+			if(immediate){
+				self.currentX = self.x;
+				self.currentY = self.y;
+			}
+		}
+		self.draw = function(dt){
+			self.currentT += dt;
+			if(self.currentT > (1/self.speed)) self.currentT = (1/self.speed);
+			var progress = self.currentT / (1/self.speed);
+
+			
+			self.currentX = self.x - ((1-progress)*self.diffX);
+			self.currentY = self.y - ((1-progress)*self.diffY);
+
+			context.fillStyle = self.color;		
+			context.fillRect( self.currentX * s, self.currentY * s, s, s );
+		}
+	}
+
+	for (var x = 0; x < columns; x++) {
+		for (var y = 0; y < rows; y++) {
+			var block = new TileBlock({
+				layout : TILE_MODELS[Math.floor(Math.random()*TILE_MODELS.length)],
+				x : (x * tileW),
+				y : (y * tileH)
+			})
+			for (var i = 0; i < block.tiles.length; i++) {
+				tiles.push(block.tiles[i]);
+			};
+			
+		};
+	};
+
+	for (var i = 0; i < 1; i++) {
+		player = new Player({
+			color : "#ffff00"
+		})
+		var freeTile = getFreeTile()
+		player.moveTo(freeTile.x, freeTile.y, true);
+		players.push(player);
+	};
+	
+	var canvas = document.createElement('canvas');
+	canvas.width = columns * tileW * s;
+	canvas.height = rows * tileH * s;
+	document.body.appendChild(canvas);
+	var context = canvas.getContext("2d");
+
+	function getFreeTile(){
+		for (var i = 0; i < tiles.length; i++) {
+			if(!tiles[i].blocked){
+				return tiles[i];
+			}
+		};
+	}
+	
+	function isBlocked(x,y){
+		for (var i = 0; i < tiles.length; i++) {
+			if(tiles[i].x == x && tiles[i].y == y){
+				return tiles[i].blocked;
+			}
+		};
+		return 1;
+
+	}
+
+
+
+	document.body.addEventListener('keyup', onKeyUp)
+	function onKeyUp(e){
+		var playerX = player.x;
+		var playerY = player.y;
+		switch(e.keyIdentifier){
+			case "Up":
+				if(isBlocked(playerX, playerY-1)  == 0){
+					player.moveTo(playerX, playerY-1);
+				}
+			break;
+			case "Down":
+				if(isBlocked(playerX, playerY+1) == 0){				
+					player.moveTo(playerX, playerY+1);
+				}
+			break;
+			case "Left":
+				if(isBlocked(playerX-1, playerY)  == 0){
+					player.moveTo(playerX-1, playerY);
+				}
+			break;
+			case "Right":
+				if(isBlocked(playerX+1, playerY) == 0){				
+					player.moveTo(playerX+1, playerY);
+				}
+			break;
+		}
+	}
+
+	var lastTime = Date.now();
+	function update(){
+		var currentTime = Date.now();
+		var dt = (currentTime - lastTime)/1000;
+		lastTime = currentTime;
+		
+		window.webkitRequestAnimationFrame(update);
+		draw(dt);
+	}
+
+	function draw(dt){
+		context.fillStyle = "rgba(0,0,0,1.0)";
+		context.fillRect  (0,0,100,100);
+		for (var i = 0; i < tiles.length; i++) {
+			tiles[i].draw()
+		};
+		for (var i = 0; i < players.length; i++) {
+
+			players[i].draw(dt)
+		};
+	}
+	update();
+
+
+	</script>
+</body>
+</html> 

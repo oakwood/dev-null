@@ -1,0 +1,280 @@
+<!doctype html>
+<html>
+<head>
+	<style>
+canvas {
+        background: url(http://boiardt.se/devnull/grass.jpg);
+        padding: 50px;
+}
+</style>
+</head>
+<body>
+	<script>
+	var canvas,
+	context,
+	foods = [],
+	grazers = [],
+	hunters = [];
+
+	var ID = 0;
+
+	
+	var canvas = document.createElement('canvas');
+	canvas.width = 100;
+	canvas.height = 100;
+	document.body.appendChild(canvas);
+	var context = canvas.getContext("2d");
+
+	function Grazer (context) {
+		var self = this;
+		self.x = Math.floor(Math.random()*100);
+		self.y = Math.floor(Math.random()*100);
+		self.age = 0;
+		self.id = ID++;
+		self.draw = function(){
+			context.fillStyle = "rgba(255,0,0,1.0)";
+			context.fillRect( self.x, self.y, 1, 1 );
+		}
+	}
+
+	function Hunter (context) {
+		var self = this;
+		self.x = Math.floor(Math.random()*100);
+		self.y = Math.floor(Math.random()*100);
+		self.age = 0;
+		self.draw = function(){
+			context.fillStyle = "rgba(255,255,255,1.0)";
+			context.fillRect( self.x, self.y, 1, 1 );
+		}
+	}
+
+	function Food (context) {
+		var self = this;
+		self.x = Math.floor(Math.random()*100);
+		self.y = Math.floor(Math.random()*100);
+		self.id = ID++;
+		self.draw = function(){
+			context.fillStyle = "rgba(100,100,0,1.0)";
+			context.fillRect( self.x, self.y, 1, 1 );
+		}
+	}
+
+	for (var i = 0; i < 15; i++) {
+		var g = new Grazer(context);
+		grazers.push(g)
+	}
+
+	for (var i = 0; i < 10; i++) {
+		var h = new Hunter(context);
+		hunters.push(h)
+	}
+
+
+	window.setInterval(tick, 100)
+
+	function grazersUpdate(){
+
+		for (var i = grazers.length - 1; i >= 0; i--) {
+			grazers[i].age++;
+			if(grazers[i].age >= 20){
+				grazers.splice(i,1)
+			}
+		};
+
+		// look for food
+		for (var i = 0; i < grazers.length; i++) {
+			var g = grazers[i];
+			g.closerFood = [];
+
+			for (var j = foods.length - 1; j >= 0; j--) {
+				var f = foods[j];
+				var x = f.x - g.x;
+				var y = f.y - g.y;
+				var distance = Math.sqrt(x*x+ y*y);
+					
+				if(distance < 5){
+					g.closerFood.push({food:f, distance:distance});
+				}
+			};
+		};
+
+		//var newGrazers = [];
+		for (var i = grazers.length - 1; i >= 0; i--) {
+			var g = grazers[i];
+			if(g.closerFood.length){
+				var closest = null;
+				var closestIndex = null;
+				var dist = 1000;
+				for (var j = 0; j < g.closerFood.length; j++) {
+					if(g.closerFood[j].distance < dist){
+						closestIndex = j;
+						closest = g.closerFood[j].food;
+						dist = g.closerFood[j].distance;
+					}
+				};
+				var vx = closest.x - g.x;
+				var vy = closest.y - g.y;
+				var max = Math.max(Math.abs(vx), Math.abs(vy));
+				var vxNorm = vx / max;
+				var vyNorm = vy / max;
+				g.x += Math.round(vxNorm);
+				g.y += Math.round(vyNorm);
+				
+				if(g.x == closest.x && g.y == closest.y && !closest.eaten){
+					for (var k = foods.length - 1; k >= 0; k--) {
+						if(foods[k].id === closest.id){
+							closest.eaten = true;
+							foods.splice(k,1);
+						}
+					};
+					
+					var newG = new Grazer(context);
+					newG.x = g.x + 1;
+					newG.y = g.y;
+					grazers.push(newG);
+				}
+			}
+			else{
+				var moveX = (Math.random()>0.5);
+				var moveY = (Math.random()>0.5);
+				if(moveX){
+					g.x += (Math.random()>0.5) ? 1 : -1;
+				} 
+				if(moveY){
+					g.y += (Math.random()>0.5) ? 1 : -1;
+				}
+			}
+			
+		}
+	}
+
+	function huntersUpdate(){
+
+		for (var i = hunters.length - 1; i >= 0; i--) {
+			hunters[i].age++;
+			if(hunters[i].age >= 50){
+				hunters.splice(i,1)
+			}
+		};
+
+		// look for grazers
+		for (var i = 0; i < hunters.length; i++) {
+			var h = hunters[i];
+			h.closerGrazers = [];
+
+			for (var j = grazers.length - 1; j >= 0; j--) {
+				var g = grazers[j];
+				var x = g.x - h.x;
+				var y = g.y - h.y;
+				var distance = Math.sqrt(x*x+ y*y);
+					
+				if(distance < 5){
+					h.closerGrazers.push({grazer:g, distance:distance});
+				}
+			};
+		};
+
+		//var newGrazers = [];
+		for (var i = hunters.length - 1; i >= 0; i--) {
+			var h = hunters[i];
+			if(h.closerGrazers.length){
+				var closest = null;
+				var closestIndex = null;
+				var dist = 1000;
+				for (var j = 0; j < h.closerGrazers.length; j++) {
+					if(h.closerGrazers[j].distance < dist){
+						closestIndex = j;
+						closest = h.closerGrazers[j].grazer;
+						dist = h.closerGrazers[j].distance;
+					}
+				};
+				var vx = closest.x - h.x;
+				var vy = closest.y - h.y;
+				var max = Math.max(Math.abs(vx), Math.abs(vy));
+				var vxNorm = vx / max;
+				var vyNorm = vy / max;
+				h.x += Math.round(vxNorm);
+				h.y += Math.round(vyNorm);
+				
+				if(h.x == closest.x && h.y == closest.y && !closest.eaten){
+					for (var k = grazers.length - 1; k >= 0; k--) {
+						if(grazers[k].id === closest.id){
+							closest.eaten = true;
+							grazers.splice(k,1);
+						}
+					};
+					
+					var newH = new Hunter(context);
+					newH.x = h.x + 1;
+					newH.y = h.y;
+					hunters.push(newH);
+				}
+			}
+			else{
+				var moveX = (Math.random()>0.5);
+				var moveY = (Math.random()>0.5);
+				if(moveX){
+					h.x += (Math.random()>0.5) ? 2 : -2;
+				} 
+				if(moveY){
+					h.y += (Math.random()>0.5) ? 2 : -2;
+				}
+			}
+			
+		}
+	}
+
+	function tick(){
+		for (var i = 0; i < 10; i++) {
+			foods.push(new Food(context));
+		}
+		
+		grazersUpdate();
+		huntersUpdate();
+		
+
+		draw();
+	}
+
+	function draw(){
+		context.fillStyle = "rgba(0,0,0,1.0)";
+		context.fillRect  (0,0,100,100);
+		for (var i = 0; i < foods.length; i++) {
+			foods[i].draw()
+		};
+		for (var i = 0; i < grazers.length; i++) {
+			grazers[i].draw()
+		};
+
+		for (var i = 0; i < hunters.length; i++) {
+			hunters[i].draw()
+		};
+	}
+
+
+	CanvasRenderingContext2D.prototype.createGlowDot = function(x,y,color){
+        var size = 4,
+                hSize = size / 2,
+                dSize = size * 4;
+
+        var grd = this.createRadialGradient(x, y, 0, x, y, size);
+        grd.addColorStop(0,'rgba(' + color + ',.4)');
+        grd.addColorStop(1,'rgba(' + color + ',0)');
+
+        this.fillStyle = grd;
+        this.fillRect(x - size, y - size, dSize, dSize);
+
+        this.fillStyle = 'rgb(' + color + ')';
+        this.fillRect(x,y,1,1);
+}
+CanvasRenderingContext2D.prototype.createFood = function(x,y){
+        this.createGlowDot(x,y,'255,255,0')
+}
+CanvasRenderingContext2D.prototype.createGrazer = function(x,y){
+        this.createGlowDot(x,y,'255,0,0')
+}
+
+
+	</script>
+</body>
+</html> 

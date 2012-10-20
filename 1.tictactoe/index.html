@@ -1,0 +1,318 @@
+<!doctype html>
+<html>
+	<head>
+		<title>tictactoe</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<script src="js/three.min.js"></script>
+		<script src="js/dragcamera.js"></script>
+		<style>
+			.result {
+				position: absolute;
+				z-index: 99;
+				top: 20px;
+				left: 20px;
+				font-size: 72px;
+			}
+		</style>
+	</head>
+<body>
+    <div id="container"></div>
+
+	<script type="text/javascript">
+		var camera, cameraControls, scene, renderer, projector, mouse;
+		var board;
+		var tiles=[];
+
+		if( !init() )	animate();
+
+		
+		function calculatePossibilities(){
+			var plane = [
+				[{a:0 ,b:0}, {a:1 ,b:0}, {a:2 ,b:0}],
+				[{a:0 ,b:1}, {a:1 ,b:1}, {a:2 ,b:1}],
+				[{a:0 ,b:2}, {a:1 ,b:2}, {a:2 ,b:2}],
+
+				[{a:0 ,b:0}, {a:0 ,b:1}, {a:0 ,b:2}],
+				[{a:1 ,b:0}, {a:1 ,b:1}, {a:1 ,b:2}],
+				[{a:2 ,b:0}, {a:2 ,b:1}, {a:2 ,b:2}],
+
+				[{a:0 ,b:0}, {a:1 ,b:1}, {a:2 ,b:2}],
+				[{a:0 ,b:2}, {a:1 ,b:1}, {a:2 ,b:0}]
+			]
+
+			var zDirection = [];
+			for (var z = 0; z < 3; z++) {
+				for (var i = 0; i < plane.length; i++) {
+					zDirection.push([
+						{ x : plane[i][0].a,  y : plane[i][0].b, z : z },
+						{ x : plane[i][1].a,  y : plane[i][1].b, z : z },
+						{ x : plane[i][2].a,  y : plane[i][2].b, z : z }
+					]);
+				};
+			}
+
+			var yDirection = [];
+			for (var y = 0; y < 3; y++) {
+				for (var i = 0; i < plane.length; i++) {
+					yDirection.push([
+						{ x : plane[i][0].a,  y : y, z : plane[i][0].b },
+						{ x : plane[i][1].a,  y : y, z : plane[i][1].b},
+						{ x : plane[i][2].a,  y : y, z : plane[i][2].b }
+					]);
+				};
+			}
+
+			var xDirection = [];
+			for (var x = 0; x < 3; x++) {
+				for (var i = 0; i < plane.length; i++) {
+					xDirection.push([
+						{ x : x,  y : plane[i][0].b, z : plane[i][0].a },
+						{ x : x,  y : plane[i][1].b, z : plane[i][1].a },
+						{ x : x,  y : plane[i][2].b, z : plane[i][2].a }
+					]);
+				};
+			}
+
+			var diagonal = [
+				[{x:0 ,y:0, z:0}, {x:1 ,y:1, z:1}, {x:2 ,y:2, z:2}],
+				[{x:0 ,y:2, z:0}, {x:1 ,y:1, z:1}, {x:2 ,y:0, z:2}],
+
+				[{x:2 ,y:0, z:0}, {x:1 ,y:1, z:1}, {x:0 ,y:2, z:2}],
+				[{x:2 ,y:2, z:0}, {x:1 ,y:1, z:1}, {x:0 ,y:0, z:2}]
+			]
+
+			possibilities = diagonal.concat(xDirection,yDirection,zDirection);
+	
+			
+				
+		}
+
+
+		function init(){
+			calculatePossibilities();
+
+			projector = new THREE.Projector()
+
+			renderer	= new THREE.CanvasRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+			renderer.domElement.addEventListener( 'click', onDocumentMouseDown, false );
+			document.getElementById('container').appendChild(renderer.domElement);
+
+			scene = new THREE.Scene();
+
+			camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000 );
+			camera.position.set(0, 0, 7);
+			scene.add(camera);
+
+			board = new THREE.Object3D();
+			scene.add(board);
+
+			for (var x = 0; x < 3; x++) {
+				for (var y = 0; y < 3; y++){
+					for (var z = 0; z < 3; z++){
+						var geom = new THREE.CubeGeometry(0.1,0.1,0.1)
+						var mat = new THREE.MeshBasicMaterial({
+							color : 0x555555 * z
+						})
+						var mesh = new THREE.Mesh( geom, mat );
+						mesh.position.x = x - 3/2
+						mesh.position.y = y - 3/2;
+						mesh.position.z = z - 3/2;
+						mesh.x = x;
+						mesh.y = y;
+						mesh.z = z;
+						mesh.user = '';
+						board.add( mesh );
+						tiles.push(mesh);
+					}
+					
+
+						
+				}
+			};
+
+			window.addEventListener( 'resize', onWindowResize, false );
+
+			mouse = {}
+			mouse.x = 0;
+			mouse.y =0;
+
+			cameraControls	= new THREEx.DragPanControls(camera)
+		}
+		function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+		function onDocumentMouseMove( event ) {
+			mouse = {}
+			mouse.x = ( event.offsetX / window.innerWidth ) * 2 - 1;
+			mouse.y =( event.offsetY / window.innerHeight ) * 2 + 1;
+	
+
+		}
+		function onDocumentMouseDown( event ) {
+
+				event.preventDefault();
+
+				var vector = new THREE.Vector3( ( event.offsetX / window.innerWidth ) * 2 - 1, - ( event.offsetY / window.innerHeight ) * 2 + 1, 0.5 );
+				projector.unprojectVector( vector, camera );
+	
+				var ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
+
+				var intersects = ray.intersectObjects( tiles );
+
+				if ( intersects.length > 0 ) {
+					onTileClick(intersects[ 0 ].object);
+				}
+
+		}
+
+
+		function onTileClick(tile){
+
+			var result = {player:null, computer:null};
+		
+			if(tile.user == ''){
+				tile.user = 'player';
+				result.player = tile;
+
+				
+				var test = false;
+				while( ! test ){
+					random = Math.floor(Math.random()*tiles.length);
+					if(tiles[random].user == "" )
+					test = true;
+				}
+				tiles[random].user = 'computer';
+				result.computer = tiles[random];
+			}
+
+
+			if(result.player){
+	
+					var geom = new THREE.CubeGeometry(0.5,0.5,0.5)
+					var mat = new THREE.MeshBasicMaterial({
+						color : 0xff0000
+					})
+					var mesh = new THREE.Mesh( geom, mat );
+					result.player.add(mesh)
+				
+
+			}
+			if(result.computer){
+				
+					var geom = new THREE.SphereGeometry(0.25)
+					var mat = new THREE.MeshBasicMaterial({
+						color : 0x00ff00
+					})
+					var mesh = new THREE.Mesh( geom, mat );
+					result.computer.add(mesh)
+				
+
+			}
+			var result = checkResult();
+			if( result=== true){
+				//document.getElementById('container').removeChild(renderer.domElement);
+				var span = document.createElement('span')
+				span.className = 'result'
+				span.innerHTML = 'YOU WON!'
+				document.getElementById('container').appendChild(span)
+			
+			}
+			else if (result === false){
+				//document.getElementById('container').removeChild(renderer.domElement);
+				var span = document.createElement('span')
+				span.className = 'result'
+				span.innerHTML = 'YOU ARE DUMBER THEN A RANDOM GENERATOR!'
+				document.getElementById('container').appendChild(span)
+			}
+		}
+
+		function checkResult(){
+			var playerTiles = []
+			for (var i = 0; i < tiles.length; i++) {
+				if(tiles[i].user == 'player') playerTiles.push(tiles[i]);
+			};
+			var computerTiles = []
+			for (var i = 0; i < tiles.length; i++) {
+				if(tiles[i].user == 'computer') computerTiles.push(tiles[i]);
+			};
+
+		
+			
+			for (var i = 0; i < possibilities.length; i++) {
+		
+				var match=[false,false,false];
+	
+				for (var index = 0; index < 3; index++) {
+
+					var possibility = possibilities[i][index];
+					
+					for (var j = 0; j < playerTiles.length; j++) {
+						if(possibility.x == playerTiles[j].x
+							&& possibility.y == playerTiles[j].y
+							&& possibility.z == playerTiles[j].z){
+							match[index] = true;
+							break;
+						}
+					};
+
+				};
+
+				var all = (match[0] && match[1] && match[2]);
+				if(all){
+					return true;
+					break
+				}
+				
+			};
+
+			for (var i = 0; i < possibilities.length; i++) {
+		
+				var match=[false,false,false];
+	
+				for (var index = 0; index < 3; index++) {
+
+					var possibility = possibilities[i][index];
+					
+					for (var j = 0; j < computerTiles.length; j++) {
+						if(possibility.x == computerTiles[j].x
+							&& possibility.y == computerTiles[j].y
+							&& possibility.z == computerTiles[j].z){
+							match[index] = true;
+							break;
+						}
+					};
+
+				};
+
+				var all = (match[0] && match[1] && match[2]);
+				if(all){
+					return false;
+					break
+				}
+				
+			};
+			return "dummy";
+		}
+
+
+		function animate() {
+			requestAnimationFrame( animate );
+			render();
+		}
+
+		function render() {
+			cameraControls.update()
+			//camera.rotation.x = mouse.y/4
+			renderer.render( scene, camera );
+		}
+	</script>
+</body>
+</html>
