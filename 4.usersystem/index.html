@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>User system</title>
+		<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.1/css/bootstrap-combined.min.css" rel="stylesheet">
+		<style>
+			body {padding: 100px}
+
+			input {margin: 0 !important; vertical-align: middle;}
+		</style>
+	</head>
+	
+	<body>
+
+
+		<form id="startform">
+			<h1>Dev-null Community</h1>
+			<input type="text" name="name" id="user" placeholder="Username">
+			<input type="password" name="password" id="pass" placeholder="Password">
+			<input type="button" id="register" value="register" class="btn btn-primary">
+			<input type="button" id="login" value="login" class="btn btn-warning">
+		</form>
+	
+		<form id="changeform" style="display:none;">
+			<input type="hidden" name="name">
+			<input type="password" name="password" id="pass" placeholder="Old password">
+			<input type="password" name="new_password" id="pass" placeholder="New password">
+			<input type="button" id="change" value="change password" class="btn">
+		</form>
+	
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+		<script>
+			var user = localStorage.getItem('user');
+			console.log(user);
+
+			if ( user ) {
+				$('#changeform [name=name]').val(user);
+				$('#changeform').show();
+					$('#startform').hide();
+
+			}
+			$('#register').click(function (){
+				$.get('http://paulo-barcelos-private.local:5000/register', $('#startform').serialize(), function(data) {
+					if (data.success == true) {
+						$('#startform').hide();
+						$('#changeform').show();
+						$('#changeform [name=name]').val($('#user').val());
+						localStorage.setItem('user',$('#user').val());
+					} else {
+						$('#startform').append('<p>What!?</p>');
+					}
+				}, 'json');
+			});
+
+			$('#login').click(function (){
+				$.get('http://paulo-barcelos-private.local:5000/login', $('#startform').serialize(), function(data) {
+					if (data.success == true) {
+						$('#startform').hide();
+						$('#changeform').show();
+						localStorage.setItem('user',$('#user').val());
+					} else {
+						$('#startform').append('<p>Login failed!</p>');
+					}
+				}, 'json');
+			});
+
+			$('#change').click(function (){
+				$.get('http://paulo-barcelos-private.local:5000/update', $('#changeform').serialize(), function(data) {
+					if (data.success == true) {
+						$('#changeform').append('Password changed!');
+					} else {
+						$('#changeform').append('Wrong password!');
+					}
+				}, 'json');
+			});
+
+		</script>
+	</body>
+</html>
