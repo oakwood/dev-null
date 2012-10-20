@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Guess the word!</title>
+		<style>
+			body, input, button {
+				text-align: center;
+				font: 20px sans-serif;
+			}
+		
+		</style>
+	</head>
+	
+	<body>
+
+		<h1 id="word">Loading words...</h1>
+		<form>
+			<input type="text">
+			<button>Guess</button>
+		</form>
+		<div id="score"></div>
+	
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+		<script>
+			var Game = {
+				$input: $('input'),
+				currentWord: 0,
+				guessesPerWord: [],
+				guessesTotal: 0,
+
+				getWords: function () {
+					// call ajax
+
+					var Words = [];
+					$.get('http://paulo-barcelos-private.local:5000', function(data) {
+						for(key in data) {
+							console.log(data[key].word);
+							Words.push(data[key].word);
+						}
+
+
+					}, 'json');
+					console.log(Words);
+					return Words;
+
+				},
+
+				nextWord: function() {
+					if (Game.currentWord < Game.Words.length) {
+						$('#word').html('Word ' + (Game.currentWord+1) + '/' + Game.Words.length + ': ' + Game.Words[Game.currentWord] );
+						Game.$input.val('').focus();
+					} else {
+						$('#word').html('Good job!');
+						$('form').remove();
+					}
+
+				},
+
+				makeGuess: function (e) {
+					e.preventDefault();
+
+					var guessedWord = Game.$input.val();
+					Game.updateScore();
+
+
+					// call ajax
+					$.get('http://paulo-barcelos-private.local:5000/match', {id: Game.currentWord, guess: guessedWord}, function(data) {
+						console.log(data);
+
+						if(data == 'true') {
+							// correct guess
+							Game.currentWord++;
+							Game.nextWord();
+
+						} else {
+							// wrong
+							Game.$input.val('');
+						}
+
+					});
+
+
+				},
+
+				updateScore: function() {
+					if (Game.guessesPerWord[Game.currentWord]) Game.guessesPerWord[Game.currentWord]++
+						else Game.guessesPerWord[Game.currentWord] = 1;
+					Game.guessesTotal++;
+
+					var html = '<h3>Scorecard:</h3>';
+					for (var i = 0, len = Game.guessesPerWord.length; i < len; i++) {
+						html += 'Word ' + (i+1) + ': ' + Game.guessesPerWord[i] + ' guesses<br>';
+					}
+					html += '<b>TOTAL: ' + Game.guessesTotal + ' guesses!';
+
+					$('#score').html(html);
+
+				}
+
+			};
+
+			$(function () {
+				Game.Words = [];
+				$.get('http://paulo-barcelos-private.local:5000', function(data) {
+					for(key in data) {
+						Game.Words.push(data[key].word);
+					}
+
+					Game.nextWord();
+
+				}, 'json');
+
+				$('form').submit(Game.makeGuess);
+
+			});
+		</script>
+	</body>
+</html>
