@@ -1,31 +1,85 @@
 <!doctype html>
 <html>
 <head>
+	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.1/css/bootstrap.min.css" rel="stylesheet">
+	<link href='http://fonts.googleapis.com/css?family=Nosifer' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=Sniglet:800' rel='stylesheet' type='text/css'>
 	<style>
-canvas {
+	html {
+		min-height: 100%;
+	}
+	body {
+		min-height: 100%;
+		width: 494px;
+		margin: 50px auto;
+		background-image: -webkit-gradient(
+			linear,
+			left bottom,
+			left top,
+			color-stop(1, rgb(207,215,230)),
+			color-stop(0, rgb(100,139,184))
+		);
+	}
+	@-webkit-keyframes wobble /* Safari and Chrome */
+		{
+		0% {
+			-webkit-transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+		}
+		33% {
+			-webkit-transform: rotateX(10deg) rotateY(-20deg) rotateZ(3deg);
+		}
+		66% {
+			-webkit-transform: rotateX(-3deg) rotateY(20deg) rotateZ(-6deg);
+		}
+		100% {
+			-webkit-transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+		}
+	}
+	canvas {
         background: url(http://boiardt.se/devnull/grass.jpg);
         background-size: 100%;
-        padding: 9%;
-}
+        padding: 122px;
+        -webkit-animation: normal 10s infinite wobble ease;
+        -webkit-border-radius: 30px;
+        -webkit-box-shadow: 0 0 10px 2px rgba(0,0,0,0.7);
+	}
 
-.progress {
-	display: block;
-	height: 20px;
-	width: 300px;
-}
+	.gscore {
+		color: #eee;
+		text-shadow: 0 0 10px rgba(0,0,0,.8);
+		font: 40px/50px 'Sniglet', Arial,sans-serif;
+	}
+	.hscore {
+		color: #900;
+		text-shadow: 1px 1px 2px rgba(255,0,0,.8);
+		font: 34px/50px 'Nosifer', Arial,sans-serif;
+	}
 
-.progress span {
-	display: block;
-	height: 30px;
-	background: #0f0;
-}
+	.progress {
+		display: block;
+		height: 20px;
+		width: 494px;
+		margin: 0 0 20px;
+	}
 
-.hscore .progress span {
-	background: #f00;
-}
-</style>
+	.progress span {
+	}
+
+	.bar-info {
+		background-color: #fff;
+		background-image: -moz-linear-gradient(top,#fff,#bbb) !important;
+		background-image: -webkit-gradient(linear,0 0,0 100%,from(#fff),to(#bbb)) !important;
+		background-image: -webkit-linear-gradient(top,#fff,#bbb) !important;
+		background-image: -o-linear-gradient(top,#fff,#bbb) !important;
+		background-image: linear-gradient(to bottom,#fff,#bbb) !important;
+	}
+	</style>
 </head>
 <body>
+
+	<audio src="http://www.freesound.org/data/previews/133/133100_1648170-lq.mp3" autoplay="true" loop="true" />
+	<audio src="http://www.freesound.org/data/previews/39/39947_37876-lq.mp3" autoplay="true" loop="true" />
+	<audio src="http://www.freesound.org/data/previews/76/76456_1169296-lq.mp3" autoplay="true" loop="true" />
 
 	<script>
 	var canvas,
@@ -45,9 +99,15 @@ canvas {
 	document.body.appendChild(canvas);
 	var context = canvas.getContext("2d");
 
+	
+	var progress = document.createElement('div');
+	progress.className = "progress"
+	document.body.appendChild(progress);
+
 	var gScore = document.createElement('div');
 	gScore.className = "gscore";
 	document.body.appendChild(gScore);
+	
 	var hScore = document.createElement('div');
 	hScore.className = "hscore"
 	document.body.appendChild(hScore);
@@ -96,7 +156,7 @@ canvas {
 	}
 
 
-	window.setInterval(tick, 100)
+	var interval = window.setInterval(tick, 100)
 
 	function grazersUpdate(){
 
@@ -270,14 +330,16 @@ canvas {
 		
 		var total = grazers.length + hunters.length;
 
-		gScore.innerHTML = "Sheeps " + grazers.length + '<span class="progress"><span style="width:' + (( grazers.length / total ) * 100 ) + '%"></span></span>';
-		hScore.innerHTML = "Predators " + hunters.length + '<span class="progress"><span style="width:' + (( hunters.length / total ) * 100 ) + '%"></span></span>';
+		gScore.innerHTML = "Sheeps " + grazers.length;
+		hScore.innerHTML = "Wolfpack " + hunters.length;
 
+		progress.innerHTML =  '<span class="bar bar-info" style="width:' + (( grazers.length / total ) * 100 ) + '%"></span>';
+		progress.innerHTML +=  '<span class="bar bar-danger" style="width:' + (( hunters.length / total ) * 100 ) + '%"></span>';
 		draw();
 	}
 
 	function draw(){
-		context.fillStyle = "rgba(50,50,50,1.0)";
+		context.fillStyle = "rgba(0,0,0,1.0)";
 		context.fillRect  (0,0,width,height);
 		for (var i = 0; i < foods.length; i++) {
 			foods[i].draw()
